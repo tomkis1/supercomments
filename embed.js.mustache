@@ -40,25 +40,25 @@ window.disqus_identifier = supercommentsConfig.disqus.identifier;
             'border-top': '2px solid',
             padding: '24px 0 10px',
             'font-family': 'Helvetica Neue",arial,sans-serif',
-            'font-size': '11pt',
+            'font-size': '12px',
             color: 'rgba(0, 39, 59, 0.2)'
           }
         }, [
-          'SuperComments ',
+          'Supercomments ',
           h('a', 'web app development', {
-            style: { 'text-decoration': 'underline', color: 'inherit' },
+            style: { 'padding-left': '0px', 'text-decoration': 'underline', color: 'inherit' },
             href: 'https://www.salsitasoft.com/mobile-and-web-apps/solutions/web-apps',
             target: '_blank'
           }),
           ' by the ',
           h('a', 'React developers', {
-            style: { 'text-decoration': 'underline', color: 'inherit' },
+            style: { 'padding-left': '0px', 'text-decoration': 'underline', color: 'inherit' },
             href: 'https://www.salsitasoft.com/javascript-engineers/full-stack-development/react',
             target: '_blank'
           }),
           ' of ',
           h('a', 'Salsita Software', {
-            style: { 'text-decoration': 'underline', color: 'inherit' },
+            style: { 'padding-left': '0px', 'text-decoration': 'underline', color: 'inherit' },
             href: 'https://www.salsitasoft.com',
             target: '_blank'
           })
@@ -134,11 +134,45 @@ window.disqus_identifier = supercommentsConfig.disqus.identifier;
     disqusScript.src = '//' + supercommentsConfig.disqus.forum + '.disqus.com/embed.js';
     (document.getElementsByTagName('head')[0] || document.body).appendChild(disqusScript);
 
-    // Watch for Disqus visibility messages from the frame
     var disqus = document.getElementById('disqus_thread');
+
+    // Get the URL of the Disqus CSS file when the Disqus frame is injected
+    var disqusDivObserver = new MutationObserver(function() {
+      // Let the frame know when the Disqus count changed
+      if (disqus.firstChild) {
+        disqusDivObserver.disconnect();
+
+        var src = disqus.firstChild.src;
+        var versionMatch = src.match(/&version=([^&]+)&/);
+        if (versionMatch && (versionMatch.length > 1)) {
+          // Get the Disqus CSS path by injecting their loader
+          var disqusVersion = versionMatch[1];
+          if (disqusVersion) {
+            var disqusCssFrame = document.createElement('iframe');
+            disqusCssFrame.setAttribute('style', 'display: none');
+            document.documentElement.appendChild(disqusCssFrame);
+            var disqusCssDoc = disqusCssFrame.contentDocument;
+            disqusCssDoc.open('text/html');
+            disqusCssDoc.write(require('./app/html/getDisqusCSS.html'));
+            disqusCssDoc.close();
+            disqusCssFrame.contentWindow.postMessage(disqusVersion, '*');
+          }
+        }
+      }
+    });
+    disqusDivObserver.observe(disqus, { childList: true });
+
+    // Watch for Disqus visibility messages from the frame
     window.addEventListener('message', function(message) {
       if (typeof(message.data) === 'object' && ('msg' in message.data)) {
-        if (message.data.msg === 'showDisqus') {
+        if (message.data.msg === 'disqusCSS') {
+          var link = doc.createElement('link');
+          link.setAttribute('rel', 'stylesheet');
+          link.setAttribute('href', message.data.href);
+          link.setAttribute('media', 'all');
+          doc.getElementsByTagName('head')[0].appendChild(link);
+        }
+        else if (message.data.msg === 'showDisqus') {
           disqus.style.display = 'initial';
           message.source.postMessage({ msg: 'onDisqusShown' }, '*');
         }
