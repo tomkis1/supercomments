@@ -38,18 +38,20 @@ const reddit = new Snoocore({
   }
 });
 
-const mapRedditReplies = replies => replies.map(({ data }) => ({
-  id: data.id,
-  name: data.name,
-  upvoted: !!data.likes,
-  downvoted: data.likes === false,
-  votes: data.score,
-  parent: data.parent_id.substring(3),
-  author: data.author,
-  body: htmlEntitiesDecoder.decode(data.body_html),
-  created: moment(data.created_utc * MsInSec),
-  replies: data.replies ? mapRedditReplies(data.replies.data.children) : []
-}));
+const mapRedditReplies = replies => replies
+  .filter(({ kind }) => kind === 't1' || kind === 'Listing')
+  .map(({ data }) => ({
+    id: data.id,
+    name: data.name,
+    upvoted: !!data.likes,
+    downvoted: data.likes === false,
+    votes: data.score,
+    parent: data.parent_id.substring(3),
+    author: data.author,
+    body: htmlEntitiesDecoder.decode(data.body_html),
+    created: moment(data.created_utc * MsInSec),
+    replies: data.replies ? mapRedditReplies(data.replies.data.children) : []
+  }));
 
 const mapRedditPost = (post, comments) => ({
   id: post.id,
